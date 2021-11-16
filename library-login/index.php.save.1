@@ -1,0 +1,288 @@
+<?php
+$page = $_SERVER['PHP_SELF'];
+$sec = "60";
+
+?>
+
+<html>
+
+<head>
+  <title>Library Logging System</title>
+  <meta name="description" content="FEU-NRMF Library Entrylog System " />
+  <meta http-equiv="refresh" content="<?php echo $sec?>;URL='<?php echo $page?>'">
+  <link rel='shortcut icon' href="/kohaimages/FEUNRMF/feu-logo.png" type=image/png"/ >
+</head>
+
+<style>
+body{
+background-image: url("/kohaimages/FEUNRMF/feu-background.jpg");
+    background-size: 100% 100%;
+}
+#footer {
+        width:100%;
+        position:absolute;
+        bottom:0;
+        left:0;
+        }
+</style>
+
+<body>
+<center>
+<div style="text-align: center;">
+<a href="http://feulibrary/main-entry/" style="text-decoration: none;">
+<img src="/kohaimages/FEUNRMF/feu-banner-entry.png" alt="FEU-NRMF BANNER"/>
+</a>
+</div>
+
+<font size = +3> <font color = 'b2965a'><b>(Library Entry System)</b></font>
+<hr color='#b2965a'>
+
+
+<?php
+//include_once "db.php"
+require_once("db.php");
+
+
+// header( "refresh:15;url=index.php" );
+
+$id = strtoupper($_GET['id']);
+if ($id == '') { echo "<center> <font color = 'white'><blink>PLEASE ENTER YOUR ID NUMBER </blink></font></center><br>";}
+	else {
+	// just so we know it is broken
+ 	error_reporting(E_ALL);
+	// some basic sanity checks
+ 
+     	//connect to the db
+     	$link = mysqli_connect($hostname, $username, $passwd)
+     		or die("Could not connect");
+     	// select our database
+     	mysqli_select_db($link,$dbase) or die("cannot select DB");;
+
+     	// get the image from the db
+     	
+	$datetoday = date("Y/m/d");
+	
+	$sql = "select surname,firstname,address, cardnumber, othernames from borrowers where othernames='$id' or cardnumber='$id'";
+     	// the result of the query
+     	$result = mysqli_query($link,$sql) or die("Invalid query");
+	$data1=mysqli_fetch_row($result);
+ 	$sql="select imagefile, mimetype from patronimage p LEFT JOIN borrowers b on (p.borrowernumber=b.borrowernumber) where othernames='$id' or cardnumber='$id' ";
+	$result=mysqli_query($link,$sql);
+	$data2=mysqli_fetch_row($result);
+    $sql="SELECT sort2 from borrowers where cardnumber='$id' and sort2 = '1'";
+ 	$result=mysqli_query($link,$sql);
+	$data3=mysqli_fetch_row($result);  
+//	$sql="SELECT enrolmentperioddate from categories c LEFT JOIN borrowers b on (c.categorycode=b.categorycode) where cardnumber='$id'";
+// 	$result=mysql_query($sql);
+//	$data3=mysql_fetch_row($result);
+	// get date of expiration
+	$sql="SELECT dateexpiry, firstname from borrowers where cardnumber='$data1[3]'";
+ 	$result=mysqli_query($link,$sql);
+	$data4=mysqli_fetch_row($result);
+	// get the circ notes
+	$sql="SELECT borrowernotes, firstname from borrowers where cardnumber='$id' and borrowernotes LIKE '%VALIDATE%'";
+ 	$result=mysqli_query($link,$sql);
+	$data5=mysqli_fetch_row($result);
+    
+	$sql = "select toe from entry where cardnumber='$data1[3]' order by slno DESC LIMIT 1";
+    // the result of the query
+    $result = mysqli_query($link,$sql) or die("Invalid query" );
+    $data6=mysqli_fetch_row($result);
+
+        $sql = "select floor from entry where cardnumber='$data1[3]' order by slno DESC LIMIT 1";
+    // the result of the query
+    $result = mysqli_query($link,$sql) or die("Invalid query" );
+    $data7=mysqli_fetch_row($result);
+
+
+	
+	$sound1 = '<EMBED src="http://pilc.org.ph/kohaimages/denied.mp3" autostart=true loop=false volume=500 hidden=true><NOEMBED><BGSOUND src="tada.wav"></NOEMBED>';
+	$sound2 = '<EMBED src="http://pilc.org.ph/kohaimages/denied.mp3" autostart=true loop=false volume=500 hidden=true><NOEMBED><BGSOUND src="tada.wav"></NOEMBED>';
+    
+	$floor="Computer Section";
+      
+	     $currentTime = time($data6[0]) + 3600;
+   $currentTime2 = time() + 3600;
+   $currentTime3 = ($data6[0]) + 3600;
+	  
+	  $from_time = strtotime($data6[0]);
+$to_time = strtotime(date('Y-m-d H:i:s'));
+$minutesdiff = round(abs($to_time - $from_time) / 60,2);
+$minutesdiff_notrounded = round(abs($to_time - $from_time) / 60,0);
+	  
+	if (sizeof($data2) > 1) {
+		echo "<BR>";
+		echo '<img src="data:image/jpg/png/jpeg;base64,' . base64_encode( $data2[0] ) . '" height="150" />';  
+		echo "<BR>";
+	}
+	else{
+		echo "<BR>";
+		echo '<img src="/kohaimages/FEUNRMF/profile-shadow.png" height="150" />';  
+		echo "<BR>";
+	}
+	
+	
+//		if ((sizeof($data1) > 1) && $minutesdiff <= "10" && $data7[0]="Computer Section") {
+//			echo "<font color= 'white' size = +2>".$data1[0]."</font>";
+//                echo "<font color= 'white' size = +2>, ".$data1[1]."</font>";
+//				echo "<br>";
+//				echo "<font color= 'white' size = +1> ID No.  ".$data1[3]."</font>";
+//		echo "<br>";
+//		$time=date('Y-m-d H:i:s');
+//		$time2=date('Y-m-d');
+  //  		echo "<font color= 'white' size = +1> Time:".$time."</font><br>";
+//			echo "<font color='maroon' size = +1.75>You have already logged-in in the last ".$minutesdiff_notrounded." minute/s. This will be recorded as invalid entry, please refrain from doing this again.</font>";	
+
+/*We record students swiping their cards multiple times. Column isvalid is '0' in the insert query, so that we can easily distinguished valid entries from invalid entries*/
+//		mysqli_select_db($link,$dbase) or die ("Error");
+//		$sql="insert into entry (cardnumber,othernames,name,floor,isvalid) values ('$data1[3]','$data1[4]','$data1[0]','$floor','0')";
+//		mysqli_query($link,$sql);
+//		mysqli_close($link1);
+
+			
+	
+//			}	elseif ((sizeof($data1) > 1) && $minutesdiff >= "10") {
+				echo "<font color= 'white' size = +2>".$data1[0]."</font>";
+                echo "<font color= 'white' size = +2>, ".$data1[1]."</font>";
+	//	echo "<BR>";
+	//	echo "<font color= 'red' size = +2>".$data1[1]."</font>";
+		echo "<br>";
+		echo "<font color= 'white' size = +1> ID No.  ".$data1[3]."</font>";
+		echo "<br>";
+		$time=date('Y-m-d H:i:s');
+		$time2=date('Y-m-d');
+    		echo "<font color= 'white' size = +1> Time of entry:".$time."</font> <br>";
+
+		/*We record valid entries, ID numbers not in Koha database. Column isvalid is '1' in the insert query*/			
+		$link1=mysqli_connect($hostname,$username,$passwd)
+		or die ("Could not connect to second database");
+		mysqli_select_db($link,$dbase) or die ("Error");
+		$sql="insert into entry (cardnumber,othernames,name,floor,isvalid) values ('$data1[3]','$data1[4]','$data1[0]','$floor','1')";
+		mysqli_query($link,$sql);
+		mysqli_close($link1);
+				
+			}
+	else{
+		echo "<font color= 'white' size = +1>You entered: ".$id."</font>";
+		echo "<br>";
+		$time=date('Y-m-d H:i:s');
+		$time2=date('Y-m-d');
+	   		echo "<font color= 'white' size = +1> Time:".$time."</font> <br>";
+		
+		echo "<font color='red' size = +2> Access Denied...</font> <br>";
+		echo "Please approach a library personnel.<br>";
+		echo $sound2;
+		
+		/*We record invalid entries, ID numbers not in Koha database. Column isvalid is '0' in the insert query*/
+		mysqli_select_db($link,$dbase) or die ("Error");
+		$sql="insert into accessdenied (cardnumber,othernames,name,floor,isvalid) values ('$id','$id','','$floor','0')";
+		mysqli_query($link,$sql);
+		
+				}
+
+	echo "</center>";
+      
+      	echo "<center>";
+//		$text1 = mysql_num_rows($data4);
+//		echo $text1;
+		if (strtotime($data4[0]) < strtotime($datetoday) && sizeof($data4) > 1)
+//	if (sizeof($data4) > 1 || strtotime($data4[0]) < strtotime($datetoday))
+			{ 
+		echo "<font color='red' size = +2> ID not validated. Your library card expired $data4[0]. Please proceed to the Circulation counter.</font> <br>";
+		}
+		
+		else {
+					}
+			
+/*
+$test = mysql_num_rows($data5);
+	echo $test;
+	if (mysql_num_rows($data5)==0)	{ 
+		}
+		else {
+		 echo "<font color='black' size = +2> You were manually validated by the library staffs. </font> <br> <br>";
+		 echo "</center>";
+		}
+			
+	echo $data5[0];
+	if (sizeof($data5) < 1) {
+
+	print $data5[0];
+	if (empty($data5)) {
+	
+	if (empty($data5) && sizeof($data1) > 1) {
+	 echo "<font color='red' size = +2> You were not manually validated by the library staffs. Please proceed to the Circulation counter to validate your card.</font> <br> <br>";
+	}
+	
+	else {
+	 
+	}
+	
+	
+	if (sizeof($data5) < 1) {	
+	}
+	elseif (sizeof($data5) > 1){
+		echo "<font color='black' size = +2> You were manually validated by the library staffs. </font> <br> <br>";
+		
+	}
+	else {
+		 echo "<font color='red' size = +2> You were not manually validated by the library staffs. </font> <br> <br>";
+		  
+	}
+	 echo "</center>";
+		
+	
+	 if (count($data5) > 1) {*/
+//	if (preg_match('/*VALIDATE*/', $data5[0])) { 
+/*		  echo "<font color='black' size = +2> You were manually validated by the library staffs. </font> <br> <br>";
+		 echo "<font color='red' size = +2> You were not manually validated by the library staffs. </font> <br> <br>";
+		 
+		 echo "</center>";
+		 
+	 }
+	 
+	 elseif (empty($data5){
+		 
+	 }
+		 
+	 else{
+		 		echo "<font color='red' size = +2> You were not manually validated by the library staffs. </font> <br> <br>";
+
+		 
+	 }
+	 
+*/
+}
+ 
+
+?>
+<center>
+<form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="GET">
+<input type = 'text', name = 'id' autofocus="autofocus"> 
+<script>
+  if (!("autofocus" in document.createElement("input"))) {
+    document.getElementById("my-input").focus();
+  }
+</script>
+
+
+<br>
+<button type="submit" value="Submit">Submit</button>
+
+
+</form>
+</center>
+
+<div id="footer">
+<div style="text-align: center;">
+<br>
+<div style="text-align:center"><a target="_blank" href="http://www.onstrike.com.ph/" style="color:black; text-decoration:none">
+<img src="/kohaimages/FEUNRMF/os-logo.png" height="x" width="40px" align="middle"/> <font size = +1> <font color = '000000'><b>c2016-2018 OnStrike Library Solutions</b></font>
+</a>
+</div>
+</div>
+</div>
+
+</body>
+</html>
+

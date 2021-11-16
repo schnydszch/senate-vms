@@ -1,0 +1,228 @@
+<html>
+
+<head>
+  <title>Library Logging System</title>
+  <meta name="description" content="FEU-NRMF Library Entrylog System " />
+  <link rel='shortcut icon' href="/kohaimages/FEUNRMF/feu-logo.png" type=image/png"/ >
+</head>
+
+<style>
+body{
+background-image: url("/kohaimages/FEUNRMF/feu-background.jpg");
+    background-size: 100% 100%;
+}
+#footer {
+        width:100%;
+        position:absolute;
+        bottom:0;
+        left:0;
+        }
+</style>
+
+<body>
+<center>
+<div style="text-align: center;">
+<a href="http://feulibrary/12th-entry/" style="text-decoration: none;">
+<img src="/kohaimages/FEUNRMF/feu-banner-entry.png" alt="FEU-NRMF BANNER"/>
+</a>
+</div>
+
+<font size = +3> <font color = 'b2965a'><b>(Library Entry System)</b></font>
+<hr color='#b2965a'>
+
+
+<?php
+//include_once "db.php"
+require_once("db.php");
+//	$hostname='localhost';
+//	$username='koha_library';
+//	$passwd = 'zodiac1962';
+
+header( "refresh:45;url=index.php" );
+
+$id = strtoupper($_GET['id']);
+if ($id == '') { echo "<center> <font color = 'white'><blink>PLEASE SWIPE YOUR ID </blink></font></center><br>";}
+	else {
+	// just so we know it is broken
+ 	error_reporting(E_ALL);
+	// some basic sanity checks
+ 
+     	//connect to the db
+     	$link = mysql_connect($hostname, $username, $passwd)
+     		or die("Could not connect: " . mysql_error());
+     	// select our database
+     	mysql_select_db($dbase) or die(mysql_error());
+
+     	// get the image from the db
+     	
+	$datetoday = date("Y/m/d");
+	
+	$sql = "select surname,firstname,address from borrowers where othernames='$id' or cardnumber='$id'";
+     	// the result of the query
+     	$result = mysql_query("$sql") or die("Invalid query: " . mysql_error());
+	$data1=mysql_fetch_row($result);
+ 	$sql="select imagefile, mimetype from patronimage p LEFT JOIN borrowers b on (p.borrowernumber=b.borrowernumber) where othernames='$id' or cardnumber='$id' ";
+	$result=mysql_query($sql);
+	$data2=mysql_fetch_row($result);
+    $sql="SELECT sort2 from borrowers where cardnumber='$id' and sort2 = '1'";
+ 	$result=mysql_query($sql);
+	$data3=mysql_fetch_row($result);  
+//	$sql="SELECT enrolmentperioddate from categories c LEFT JOIN borrowers b on (c.categorycode=b.categorycode) where cardnumber='$id'";
+// 	$result=mysql_query($sql);
+//	$data3=mysql_fetch_row($result);
+	// get date of expiration
+	$sql="SELECT dateexpiry, firstname from borrowers where cardnumber='$id'";
+ 	$result=mysql_query($sql);
+	$data4=mysql_fetch_row($result);
+	// get the circ notes
+	$sql="SELECT borrowernotes, firstname from borrowers where cardnumber='$id' and borrowernotes LIKE '%VALIDATE%'";
+ 	$result=mysql_query($sql);
+	$data5=mysql_fetch_row($result);
+	
+	$sound1 = '<EMBED src="http://pilc.org.ph/kohaimages/denied.mp3" autostart=true loop=false volume=500 hidden=true><NOEMBED><BGSOUND src="tada.wav"></NOEMBED>';
+	$sound2 = '<EMBED src="http://pilc.org.ph/kohaimages/denied.mp3" autostart=true loop=false volume=500 hidden=true><NOEMBED><BGSOUND src="tada.wav"></NOEMBED>';
+    
+	$floor="12th floor";
+      
+	if (sizeof($data2) > 1) {
+		echo "<BR>";
+		echo '<img src="data:image/jpg/png/jpeg;base64,' . base64_encode( $data2[0] ) . '" height="150" />';  
+		echo "<BR>";
+	}
+	else{
+		echo "<BR>";
+		echo '<img src="http://pilc.org.ph/kohaimages/FEUNRMF/profile-shadow.png" height="150" />';  
+		echo "<BR>";
+	}
+		if (sizeof($data1) > 1) {
+		echo "<font color= 'white' size = +2>".$data1[0]."</font>";
+                echo "<font color= 'white' size = +2>, ".$data1[1]."</font>";
+	//	echo "<BR>";
+	//	echo "<font color= 'red' size = +2>".$data1[1]."</font>";
+		echo "<br>";
+		echo "<font color= 'white' size = +1> ID No.  ".$id."</font>";
+		echo "<br>";
+		$time=date('Y-m-d H:i:s');
+		$time2=date('Y-m-d');
+    		echo "<font color= 'white' size = +1> Time of entry:".$time."</font> <br>";
+			
+		$link1=mysql_connect($hostname,$username,$passwd)
+		or die ("Could not connect to second database..:".mysql_error());
+		mysql_select_db($dbase) or die (mysql_error());
+		$sql="insert into entry (cardnumber,othernames,name,floor) values ('$id','$id','$data1[0]','$floor')";
+		mysql_query($sql);
+		mysql_close($link1);
+
+}
+	else{
+		
+		echo "<font color='red' size = +2> Access Denied...</font> <br> <br>";
+		echo $sound2;
+		}
+		;
+
+	echo "</center>";
+      
+      	echo "<center>";
+//		$text1 = mysql_num_rows($data4);
+//		echo $text1;
+		if (strtotime($data4[0]) < strtotime($datetoday) && sizeof($data4) > 1)
+//	if (sizeof($data4) > 1 || strtotime($data4[0]) < strtotime($datetoday))
+			{ 
+		echo "<font color='red' size = +2> ID not validated. Your library card expired $data4[0]. Please proceed to the Circulation counter.</font> <br><br> <br><br>";
+		}
+		
+		else {
+					}
+			
+
+//$test = mysql_num_rows($data5);
+//	echo $test;
+//	if (mysql_num_rows($data5)==0)	{ 
+//		}
+//		else {
+//		 echo "<font color='black' size = +2> You were manually validated by the library staffs. </font> <br> <br>";
+//		 echo "</center>";
+//		}
+			
+//	echo $data5[0];
+//	if (sizeof($data5) < 1) {
+
+//	print $data5[0];
+//	if (empty($data5)) {
+	
+//	if (empty($data5) && sizeof($data1) > 1) {
+//	 echo "<font color='red' size = +2> You were not manually validated by the library staffs. Please proceed to the Circulation counter to validate your card.</font> <br> <br>";
+//	}
+	
+//	else {
+	 
+//	}
+	
+	
+//	if (sizeof($data5) < 1) {	
+//	}
+//	elseif (sizeof($data5) > 1){
+//		echo "<font color='black' size = +2> You were manually validated by the library staffs. </font> <br> <br>";
+		
+//	}
+//	else {
+//		 echo "<font color='red' size = +2> You were not manually validated by the library staffs. </font> <br> <br>";
+		  
+//	}
+//	 echo "</center>";
+		
+	
+//	 if (count($data5) > 1) {
+//	if (preg_match('/*VALIDATE*/', $data5[0])) {
+		 // echo "<font color='black' size = +2> You were manually validated by the library staffs. </font> <br> <br>";
+//		 echo "<font color='red' size = +2> You were not manually validated by the library staffs. </font> <br> <br>";
+		 
+//		 echo "</center>";
+		 
+//	 }
+	 
+//	 elseif (empty($data5){
+		 
+//	 }
+		 
+//	 else{
+//		 		echo "<font color='red' size = +2> You were not manually validated by the library staffs. </font> <br> <br>";
+
+		 
+//	 }
+	 
+
+}
+  
+  
+
+?>
+<center>
+<form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="GET">
+<input type = 'text', name = 'id' autofocus="autofocus"> 
+<script>
+  if (!("autofocus" in document.createElement("input"))) {
+    document.getElementById("my-input").focus();
+  }
+</script>
+
+
+<br>
+<button type="submit" value="Submit">Submit</button>
+
+
+</form>
+</center>
+<div id="footer">
+<div style="text-align: center;">
+<div style="text-align:center"><a target="_blank" href="http://www.onstrike.com.ph/" style="color:black; text-decoration:none">
+<img src="http://pilc.org.ph/kohaimages/os-logo.png" height="x" width="40px" align="middle"/> <font size = +1> <font color = '000000'><b>2016 OnStrike Library Solutions</b></font>
+</a>
+</div>
+</div>
+</div>
+
+</body>
+</html>
+
